@@ -8,6 +8,14 @@ import time  # 引入 time 模块
 # 忽略所有警告
 warnings.filterwarnings("ignore")
 
+def calculate_weighted_euclidean_distances(data, p):
+    """
+    计算加权欧式距离
+    """
+    dis = (data - p) ** 2
+    dis_top10 = np.sort(dis, axis=0)[-10:]
+    return 0.6 * (dis ** 0.5).sum() + 0.4 * (dis_top10 ** 0.5).sum()
+
 class GrainCluster:
     def __init__(self, features, labels, chunk_start, purity_threshold=0.9):
         self.features = features
@@ -45,8 +53,14 @@ class GrainCluster:
                 print("警告：当前分裂的簇没有任何标签！")
                 continue
 
+            # 使用新的距离计算方法初始化 KMeans
             kmeans = KMeans(n_clusters=k, init='k-means++', n_init=4, random_state=42)
             clusters = kmeans.fit_predict(current_features)
+
+            # 使用加权欧式距离计算
+            centroids = kmeans.cluster_centers_
+            distances = np.array([calculate_weighted_euclidean_distances(current_features, centroids[cluster])
+                                  for cluster in clusters])
 
             for i in range(k):
                 cluster_indices = np.where(clusters == i)[0]
